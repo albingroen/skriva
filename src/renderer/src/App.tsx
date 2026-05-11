@@ -1,5 +1,7 @@
+import Editor from './components/Editor'
+
 function App(): React.JSX.Element {
-  return <p>hej</p>
+  return <Editor />
 }
 
 export default App
