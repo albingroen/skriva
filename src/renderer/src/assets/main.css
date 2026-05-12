@@ -1,51 +1,102 @@
 @import 'tailwindcss';
 @plugin "@tailwindcss/typography";
+@plugin "@tailwindcss/forms";
 
 :root {
+  color-scheme: light dark;
+
   --paper: oklch(99.5% 0.0222 107deg);
-  --paper-dark: oklch(85% 0.0222 107deg);
+  --paper-muted: oklch(80% 0.0222 107deg);
   --foreground: oklch(0% 0 0deg);
+  --muted-foreground: var(--color-stone-500);
+  --primary: var(--color-emerald-700);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --paper: oklch(22.8% 0.013 107.4);
+    --paper-muted: oklch(38.6% 0.016 107.4);
+    --foreground: oklch(100% 0 0deg);
+    --muted-foreground: var(--color-stone-500);
+    --primary: var(--color-emerald-500);
+  }
 }
 
 @theme inline {
   --color-paper: var(--paper);
-  --color-paper-dark: var(--paper-dark);
+  --color-paper-muted: var(--paper-muted);
   --color-foreground: var(--foreground);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-primary: var(--primary);
 
-  --color-gray-50: var(--color-olive-50);
-  --color-gray-100: var(--color-olive-100);
-  --color-gray-200: var(--color-olive-200);
-  --color-gray-300: var(--color-olive-300);
-  --color-gray-400: var(--color-olive-400);
-  --color-gray-500: var(--color-olive-500);
-  --color-gray-600: var(--color-olive-600);
-  --color-gray-700: var(--color-olive-700);
-  --color-gray-800: var(--color-olive-800);
-  --color-gray-900: var(--color-olive-900);
-  --color-gray-950: var(--color-olive-950);
+  --color-gray-50: var(--color-stone-50);
+  --color-gray-100: var(--color-stone-100);
+  --color-gray-200: var(--color-stone-200);
+  --color-gray-300: var(--color-stone-300);
+  --color-gray-400: var(--color-stone-400);
+  --color-gray-500: var(--color-stone-500);
+  --color-gray-600: var(--color-stone-600);
+  --color-gray-700: var(--color-stone-700);
+  --color-gray-800: var(--color-stone-800);
+  --color-gray-900: var(--color-stone-900);
+  --color-gray-950: var(--color-stone-950);
 }
 
 @layer base {
   body {
     @apply antialiased bg-paper text-foreground;
   }
+
+  body:before {
+    content: '';
+    background-color: transparent;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 600 600'%3E%3Cfilter id='a'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23a)'/%3E%3C/svg%3E");
+    background-repeat: repeat;
+    background-size: 182px;
+    opacity: 0.82;
+    top: 0;
+    left: 0;
+    position: absolute;
+    width: 100svw;
+    height: 100svh;
+
+    @media (prefers-color-scheme: dark) {
+      opacity: 0.12;
+    }
+  }
+}
+
+@layer components {
+  .drag {
+    -webkit-app-region: drag;
+  }
+
+  .no-drag {
+    -webkit-app-region: no-drag;
+  }
 }
 
 .prose {
   scrollbar-width: thin;
-  scrollbar-color: var(--color-paper-dark) transparent;
+  scrollbar-color: var(--color-paper-muted) transparent;
 
-  h1,
+  @apply font-serif;
+
+  h1 {
+    @apply font-normal;
+  }
+
   h2,
   h3,
   h4,
   h5,
   h6 {
-    @apply font-normal;
+    @apply font-medium;
   }
 
-  hr {
-    @apply border-olive-400;
+  hr,
+  blockquote {
+    @apply border-paper-muted;
   }
 
   ul ul,
@@ -54,15 +105,74 @@
   }
 
   ul li::marker {
-    @apply text-foreground;
+    @apply text-muted-foreground;
   }
 
   ol li::marker {
-    @apply text-foreground;
+    @apply text-muted-foreground;
   }
 
   ul li p,
   ol li p {
     @apply m-0;
+  }
+
+  ul[data-type='taskList'] {
+    padding: 0;
+    margin: 0;
+
+    li {
+      @apply flex items-start gap-2.75;
+
+      > label {
+        flex: 0 0 auto;
+        user-select: none;
+
+        input[type='checkbox'] {
+          @apply bg-transparent rounded-xs size-4 border-muted-foreground;
+
+          &:checked {
+            @apply bg-primary border-primary;
+          }
+        }
+      }
+
+      > div {
+        flex: 1 1 auto;
+        @apply mt-0.5;
+      }
+
+      &:has(:checked) {
+        > div > p {
+          @apply text-muted-foreground line-through;
+        }
+      }
+    }
+  }
+
+  :not(pre) > code {
+    @apply bg-paper-muted/30 px-1.25 py-1 rounded-sm text-primary;
+
+    &::before,
+    &::after {
+      content: '';
+    }
+  }
+
+  pre {
+    @apply bg-paper-muted/20 text-primary;
+  }
+
+  a {
+    @apply underline-offset-4 decoration-1 font-normal decoration-muted-foreground hover:decoration-foreground cursor-pointer;
+  }
+
+  strong,
+  b {
+    @apply font-semibold;
+  }
+
+  s {
+    @apply text-muted-foreground;
   }
 }

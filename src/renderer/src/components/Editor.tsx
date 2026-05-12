@@ -1,11 +1,20 @@
 import { useEditor, EditorContent } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import { Markdown } from '@tiptap/markdown'
+import { TaskItem, TaskList } from '@tiptap/extension-list'
+import { EXAMPLE_MARKDOWN } from '@renderer/lib/constants'
 
-export default function Editor() {
+export default function Editor(): React.JSX.Element {
   const editor = useEditor({
-    extensions: [StarterKit, Markdown], // define your extension array
-    content: '# Hello',
+    extensions: [
+      StarterKit,
+      Markdown,
+      TaskList,
+      TaskItem.configure({
+        nested: true
+      })
+    ], // define your extension array
+    content: EXAMPLE_MARKDOWN,
     contentType: 'markdown',
     autofocus: 'end',
     editorProps: {
@@ -13,7 +22,7 @@ export default function Editor() {
       scrollThreshold: { bottom: 160, top: 80, left: 0, right: 0 },
       attributes: {
         class:
-          'px-[15svw] py-[10svh] prose w-svw h-svh text-foreground selection:bg-paper-dark overflow-y-auto max-w-none outline-none'
+          'px-[10svw] xl:px-[25svw] py-[10svh] prose dark:prose-invert w-svw h-svh text-foreground caret-foreground selection:bg-primary selection:text-white overflow-y-auto max-w-none outline-none'
       }
     }
   })

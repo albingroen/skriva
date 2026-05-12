@@ -1,7 +1,14 @@
-import { app, shell, BrowserWindow } from 'electron'
+import { app, shell, BrowserWindow, nativeTheme } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
+
+const PAPER_LIGHT = '#fdfcef'
+const PAPER_DARK = '#2e2d28'
+
+function paperBackground(): string {
+  return nativeTheme.shouldUseDarkColors ? PAPER_DARK : PAPER_LIGHT
+}
 
 function createWindow(): void {
   // Create the browser window.
@@ -9,6 +16,7 @@ function createWindow(): void {
     width: 900,
     height: 670,
     show: false,
+    backgroundColor: paperBackground(),
     autoHideMenuBar: true,
     ...(process.platform === 'linux' ? { icon } : {}),
     webPreferences: {
@@ -16,6 +24,14 @@ function createWindow(): void {
       sandbox: false
     },
     titleBarStyle: 'hiddenInset'
+  })
+
+  const handleThemeUpdate = (): void => {
+    mainWindow.setBackgroundColor(paperBackground())
+  }
+  nativeTheme.on('updated', handleThemeUpdate)
+  mainWindow.on('closed', () => {
+    nativeTheme.off('updated', handleThemeUpdate)
   })
 
   mainWindow.on('ready-to-show', () => {
