@@ -12,6 +12,7 @@
   --foreground: oklch(0% 0 0deg);
   --muted-foreground: var(--color-stone-500);
   --primary: var(--color-emerald-700);
+  --primary-dim: var(--color-emerald-200);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -21,6 +22,7 @@
     --foreground: oklch(100% 0 0deg);
     --muted-foreground: var(--color-stone-500);
     --primary: var(--color-emerald-500);
+    --primary-dim: var(--color-emerald-700);
   }
 }
 
@@ -32,6 +34,7 @@
   --color-foreground: var(--foreground);
   --color-muted-foreground: var(--muted-foreground);
   --color-primary: var(--primary);
+  --color-primary-dim: var(--primary-dim);
 
   --color-gray-50: var(--color-stone-50);
   --color-gray-100: var(--color-stone-100);
@@ -50,24 +53,6 @@
   body {
     @apply antialiased bg-background text-foreground;
   }
-
-  /* body:before { */
-  /*   content: ''; */
-  /*   background-color: transparent; */
-  /*   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 600 600'%3E%3Cfilter id='a'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23a)'/%3E%3C/svg%3E"); */
-  /*   background-repeat: repeat; */
-  /*   background-size: 182px; */
-  /*   opacity: 0.82; */
-  /*   top: 0; */
-  /*   left: 0; */
-  /*   position: absolute; */
-  /*   width: 100svw; */
-  /*   height: 100svh; */
-  /**/
-  /*   @media (prefers-color-scheme: dark) { */
-  /*     opacity: 0.12; */
-  /*   } */
-  /* } */
 }
 
 @layer components {
@@ -85,15 +70,22 @@
   scrollbar-color: var(--color-muted) transparent;
 
   h1 {
-    @apply font-normal;
+    @apply text-3xl;
   }
 
-  h2,
-  h3,
+  h1,
+  h2 {
+    @apply font-medium;
+  }
+
+  h3 {
+    @apply font-semibold;
+  }
+
   h4,
   h5,
   h6 {
-    @apply font-medium;
+    @apply font-bold;
   }
 
   hr,
@@ -146,15 +138,15 @@
       }
 
       &:has(:checked) {
-        > div > p {
-          @apply text-muted-foreground line-through;
+        * {
+          @apply text-muted-foreground;
         }
       }
     }
   }
 
   :not(pre) > code {
-    @apply bg-muted-light px-1.25 py-1 rounded-sm text-foreground font-semibold;
+    @apply bg-muted-light px-1.25 py-1 rounded-sm text-foreground font-medium;
 
     &::before,
     &::after {
@@ -185,5 +177,9 @@
 
   s {
     @apply text-muted-foreground;
+  }
+
+  mark {
+    @apply bg-primary-dim;
   }
 }

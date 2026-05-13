@@ -24,6 +24,7 @@
     "@electron-toolkit/preload": "^3.0.2",
     "@electron-toolkit/utils": "^4.0.0",
     "@tailwindcss/vite": "^4.3.0",
+    "@tiptap/extension-highlight": "^3.23.1",
     "@tiptap/extension-list": "^3.23.1",
     "@tiptap/markdown": "^3.23.1",
     "@tiptap/pm": "^3.23.1",
