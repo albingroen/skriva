@@ -84,8 +84,6 @@
   scrollbar-width: thin;
   scrollbar-color: var(--color-muted) transparent;
 
-  @apply font-serif;
-
   h1 {
     @apply font-normal;
   }
@@ -110,6 +108,7 @@
 
   ul li::marker {
     @apply text-muted-foreground;
+    content: '— ';
   }
 
   ol li::marker {
@@ -155,7 +154,7 @@
   }
 
   :not(pre) > code {
-    @apply bg-muted-light px-1.25 py-1 rounded-sm text-foreground font-normal;
+    @apply bg-muted-light px-1.25 py-1 rounded-sm text-foreground font-semibold;
 
     &::before,
     &::after {
@@ -164,7 +163,15 @@
   }
 
   pre {
-    @apply bg-muted-light text-foreground;
+    @apply bg-muted-light text-foreground overflow-x-auto;
+
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-muted) transparent;
+
+    code {
+      white-space: pre;
+      word-wrap: normal;
+    }
   }
 
   a {
