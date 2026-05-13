@@ -3,11 +3,11 @@ import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 
-const PAPER_LIGHT = '#fdfcef'
-const PAPER_DARK = '#2e2d28'
+const BG_LIGHT = '#FAFAF9'
+const BG_DARK = '#1D1D16'
 
-function paperBackground(): string {
-  return nativeTheme.shouldUseDarkColors ? PAPER_DARK : PAPER_LIGHT
+function getBackground(): string {
+  return nativeTheme.shouldUseDarkColors ? BG_DARK : BG_LIGHT
 }
 
 function createWindow(): void {
@@ -16,7 +16,7 @@ function createWindow(): void {
     width: 900,
     height: 670,
     show: false,
-    backgroundColor: paperBackground(),
+    backgroundColor: getBackground(),
     autoHideMenuBar: true,
     ...(process.platform === 'linux' ? { icon } : {}),
     webPreferences: {
@@ -27,7 +27,7 @@ function createWindow(): void {
   })
 
   const handleThemeUpdate = (): void => {
-    mainWindow.setBackgroundColor(paperBackground())
+    mainWindow.setBackgroundColor(getBackground())
   }
   nativeTheme.on('updated', handleThemeUpdate)
   mainWindow.on('closed', () => {
