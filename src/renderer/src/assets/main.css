@@ -1,4 +1,5 @@
 @import 'tailwindcss';
+@import 'highlight.js/styles/github.css';
 @plugin "@tailwindcss/typography";
 @plugin "@tailwindcss/forms";
 
@@ -11,11 +12,14 @@
   --muted-dark: oklch(70.9% 0.01 56.259);
   --foreground: oklch(0% 0 0deg);
   --muted-foreground: var(--color-stone-500);
+  --muted-foreground-strong: var(--color-stone-700);
   --primary: var(--color-emerald-700);
   --primary-dim: var(--color-emerald-200);
 }
 
 @media (prefers-color-scheme: dark) {
+  @import 'highlight.js/styles/github-dark.css';
+
   :root {
     --background: oklch(22.8% 0.013 107.4);
     --muted: oklch(37.4% 0.01 67.558);
@@ -23,6 +27,7 @@
     --muted-dark: oklch(44.4% 0.011 73.639);
     --foreground: oklch(100% 0 0deg);
     --muted-foreground: var(--color-stone-500);
+    --muted-foreground-strong: var(--color-stone-300);
     --primary: var(--color-emerald-500);
     --primary-dim: var(--color-emerald-700);
   }
@@ -35,6 +40,7 @@
   --color-muted-dark: var(--muted-dark);
   --color-foreground: var(--foreground);
   --color-muted-foreground: var(--muted-foreground);
+  --color-muted-foreground-strong: var(--muted-foreground-strong);
   --color-primary: var(--primary);
   --color-primary-dim: var(--primary-dim);
 
@@ -70,9 +76,6 @@
 .prose {
   scrollbar-width: thin;
   scrollbar-color: var(--color-muted) transparent;
-
-  /* --tw-prose-pre-bg: white; */
-  /* --tw-prose-pre-code: var(--color-foreground); */
 
   h1 {
     @apply text-3xl;
@@ -151,7 +154,7 @@
   }
 
   :not(pre) > code {
-    @apply bg-muted-light px-1.25 py-1 rounded-sm text-foreground font-medium;
+    @apply bg-muted-light px-1.25 py-1 rounded-sm text-muted-foreground-strong font-medium;
 
     &::before,
     &::after {
@@ -166,7 +169,7 @@
     scrollbar-color: var(--color-muted) transparent;
 
     code {
-      @apply text-foreground;
+      @apply text-muted-foreground-strong;
       white-space: pre;
       word-wrap: normal;
     }
@@ -186,6 +189,6 @@
   }
 
   mark {
-    @apply bg-primary-dim;
+    @apply bg-primary-dim text-foreground;
   }
 }

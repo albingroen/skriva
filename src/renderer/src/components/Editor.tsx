@@ -6,7 +6,6 @@ import { EXAMPLE_MARKDOWN } from '@renderer/lib/constants'
 import Highlight from '@tiptap/extension-highlight'
 import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight'
 import { all, createLowlight } from 'lowlight'
-import 'highlight.js/styles/tokyo-night-light.css'
 
 const lowlight = createLowlight(all)
 
