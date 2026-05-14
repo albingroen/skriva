@@ -18,7 +18,9 @@
 @media (prefers-color-scheme: dark) {
   :root {
     --background: oklch(22.8% 0.013 107.4);
-    --muted: oklch(38.6% 0.016 107.4);
+    --muted: oklch(37.4% 0.01 67.558);
+    --muted-light: oklch(26.8% 0.007 34.298);
+    --muted-dark: oklch(44.4% 0.011 73.639);
     --foreground: oklch(100% 0 0deg);
     --muted-foreground: var(--color-stone-500);
     --primary: var(--color-emerald-500);
