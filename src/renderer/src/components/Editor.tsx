@@ -4,17 +4,25 @@ import { Markdown } from '@tiptap/markdown'
 import { TaskItem, TaskList } from '@tiptap/extension-list'
 import { EXAMPLE_MARKDOWN } from '@renderer/lib/constants'
 import Highlight from '@tiptap/extension-highlight'
+import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight'
+import { all, createLowlight } from 'lowlight'
+import 'highlight.js/styles/tokyo-night-light.css'
+
+const lowlight = createLowlight(all)
 
 export default function Editor(): React.JSX.Element {
   const editor = useEditor({
     extensions: [
-      StarterKit,
+      StarterKit.configure({ codeBlock: false }),
       Markdown,
       TaskList,
       TaskItem.configure({
         nested: true
       }),
-      Highlight
+      Highlight,
+      CodeBlockLowlight.configure({
+        lowlight
+      })
     ], // define your extension array
     content: EXAMPLE_MARKDOWN,
     contentType: 'markdown',

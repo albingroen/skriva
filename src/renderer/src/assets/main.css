@@ -7,7 +7,7 @@
 
   --background: oklch(97% 0.001 106.424);
   --muted: oklch(86.9% 0.005 56.366);
-  --muted-light: oklch(92.3% 0.003 48.717);
+  --muted-light: oklch(93% 0.003 48.717);
   --muted-dark: oklch(70.9% 0.01 56.259);
   --foreground: oklch(0% 0 0deg);
   --muted-foreground: var(--color-stone-500);
@@ -68,6 +68,9 @@
 .prose {
   scrollbar-width: thin;
   scrollbar-color: var(--color-muted) transparent;
+
+  /* --tw-prose-pre-bg: white; */
+  /* --tw-prose-pre-code: var(--color-foreground); */
 
   h1 {
     @apply text-3xl;
@@ -155,12 +158,13 @@
   }
 
   pre {
-    @apply bg-muted-light text-foreground overflow-x-auto;
+    @apply bg-muted-light overflow-x-auto;
 
     scrollbar-width: thin;
     scrollbar-color: var(--color-muted) transparent;
 
     code {
+      @apply text-foreground;
       white-space: pre;
       word-wrap: normal;
     }
