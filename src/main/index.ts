@@ -1,4 +1,4 @@
-import { app, shell, BrowserWindow, nativeTheme } from 'electron'
+import { app, shell, BrowserWindow, nativeTheme, Menu } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
@@ -9,6 +9,27 @@ const BG_DARK = '#1D1D16'
 function getBackground(): string {
   return nativeTheme.shouldUseDarkColors ? BG_DARK : BG_LIGHT
 }
+
+const template: Electron.MenuItemConstructorOptions[] = [
+  { role: 'appMenu' },
+  {
+    label: 'File',
+    submenu: [
+      { role: 'close' },
+      {
+        label: 'Open',
+        accelerator: 'cmd+O'
+      }
+    ]
+  },
+  { role: 'editMenu' },
+  { role: 'viewMenu' },
+  { role: 'windowMenu' },
+  { role: 'help' }
+]
+
+const menu = Menu.buildFromTemplate(template)
+Menu.setApplicationMenu(menu)
 
 function createWindow(): void {
   // Create the browser window.

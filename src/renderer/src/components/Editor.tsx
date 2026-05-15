@@ -2,7 +2,6 @@ import { useEditor, EditorContent } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import { Markdown } from '@tiptap/markdown'
 import { TaskItem, TaskList } from '@tiptap/extension-list'
-import { EXAMPLE_MARKDOWN } from '@renderer/lib/constants'
 import Highlight from '@tiptap/extension-highlight'
 import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight'
 import { all, createLowlight } from 'lowlight'
@@ -22,8 +21,8 @@ export default function Editor(): React.JSX.Element {
       CodeBlockLowlight.configure({
         lowlight
       })
-    ], // define your extension array
-    content: EXAMPLE_MARKDOWN,
+    ],
+    content: '',
     contentType: 'markdown',
     autofocus: 'start',
     editorProps: {
