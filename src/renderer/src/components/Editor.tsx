@@ -19,6 +19,8 @@ export default function Editor(): React.JSX.Element {
       }),
       Highlight,
       CodeBlockLowlight.configure({
+        enableTabIndentation: true,
+        tabSize: 2,
         lowlight
       })
     ],
