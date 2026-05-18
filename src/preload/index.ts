@@ -16,6 +16,7 @@ export const api = {
   onFileOpened: (callback: (note: Note) => void) =>
     subscribe<[Note]>(Channels.FileOpened, callback),
   onSaveRequest: (callback: () => void) => subscribe<[]>(Channels.SaveRequest, callback),
+  onNewFile: (callback: () => void) => subscribe<[]>(Channels.NewFile, callback),
   saveFile: (path: string | null, content: string): Promise<{ path: string } | null> =>
     ipcRenderer.invoke(Channels.SaveFile, { path, content })
 }

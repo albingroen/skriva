@@ -7,10 +7,18 @@ function App(): React.JSX.Element {
   const [isDirty, setIsDirty] = useState(false)
 
   useEffect(() => {
-    return window.api.onFileOpened((value) => {
+    const unsubOpened = window.api.onFileOpened((value) => {
       setNote(value)
       setIsDirty(false)
     })
+    const unsubNew = window.api.onNewFile(() => {
+      setNote(undefined)
+      setIsDirty(false)
+    })
+    return () => {
+      unsubOpened()
+      unsubNew()
+    }
   }, [])
 
   const handleSave = useCallback(

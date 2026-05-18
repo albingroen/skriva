@@ -76,6 +76,13 @@ function createWindow(): void {
       submenu: [
         { role: 'close' },
         {
+          label: 'New',
+          accelerator: 'cmd+N',
+          click: () => {
+            mainWindow.webContents.send(Channels.NewFile)
+          }
+        },
+        {
           label: 'Save…',
           accelerator: 'cmd+S',
           click: () => {
