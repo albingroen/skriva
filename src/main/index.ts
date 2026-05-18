@@ -1,7 +1,9 @@
-import { app, shell, BrowserWindow, nativeTheme, Menu } from 'electron'
+import { app, shell, BrowserWindow, nativeTheme, Menu, dialog, ipcMain } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
+import fs from 'node:fs/promises'
+import { Channels } from '@shared/channels'
 
 const BG_LIGHT = '#FAFAF9'
 const BG_DARK = '#1D1D16'
@@ -9,27 +11,6 @@ const BG_DARK = '#1D1D16'
 function getBackground(): string {
   return nativeTheme.shouldUseDarkColors ? BG_DARK : BG_LIGHT
 }
-
-const template: Electron.MenuItemConstructorOptions[] = [
-  { role: 'appMenu' },
-  {
-    label: 'File',
-    submenu: [
-      { role: 'close' },
-      {
-        label: 'Open',
-        accelerator: 'cmd+O'
-      }
-    ]
-  },
-  { role: 'editMenu' },
-  { role: 'viewMenu' },
-  { role: 'windowMenu' },
-  { role: 'help' }
-]
-
-const menu = Menu.buildFromTemplate(template)
-Menu.setApplicationMenu(menu)
 
 function createWindow(): void {
   // Create the browser window.
@@ -64,6 +45,22 @@ function createWindow(): void {
     return { action: 'deny' }
   })
 
+  ipcMain.handle(
+    Channels.SaveFile,
+    async (_event, { path, content }: { path: string | null; content: string }) => {
+      let targetPath = path
+      if (!targetPath) {
+        const { canceled, filePath } = await dialog.showSaveDialog(mainWindow, {
+          filters: [{ name: 'Markdown', extensions: ['md'] }]
+        })
+        if (canceled || !filePath) return null
+        targetPath = filePath
+      }
+      await fs.writeFile(targetPath, content, { encoding: 'utf-8' })
+      return { path: targetPath }
+    }
+  )
+
   // HMR for renderer base on electron-vite cli.
   // Load the remote URL for development or the local html file for production.
   if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
@@ -71,6 +68,42 @@ function createWindow(): void {
   } else {
     mainWindow.loadFile(join(__dirname, '../renderer/index.html'))
   }
+
+  const template: Electron.MenuItemConstructorOptions[] = [
+    { role: 'appMenu' },
+    {
+      label: 'File',
+      submenu: [
+        { role: 'close' },
+        {
+          label: 'Save…',
+          accelerator: 'cmd+S',
+          click: () => {
+            mainWindow.webContents.send(Channels.SaveRequest)
+          }
+        },
+        {
+          label: 'Open…',
+          accelerator: 'cmd+O',
+          click: async () => {
+            const { canceled, filePaths } = await dialog.showOpenDialog(mainWindow)
+            if (canceled) return
+
+            const filePath = filePaths[0]
+            const content = await fs.readFile(filePath, { encoding: 'utf-8' })
+            mainWindow.webContents.send(Channels.FileOpened, { path: filePath, content })
+          }
+        }
+      ]
+    },
+    { role: 'editMenu' },
+    { role: 'viewMenu' },
+    { role: 'windowMenu' },
+    { role: 'help' }
+  ]
+
+  const menu = Menu.buildFromTemplate(template)
+  Menu.setApplicationMenu(menu)
 }
 
 // This method will be called when Electron has finished

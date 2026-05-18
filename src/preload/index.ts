@@ -1,8 +1,24 @@
-import { contextBridge } from 'electron'
+import { contextBridge, ipcRenderer, IpcRendererEvent } from 'electron'
 import { electronAPI } from '@electron-toolkit/preload'
+import { Note } from '@shared/types'
+import { Channels } from '@shared/channels'
 
-// Custom APIs for renderer
-const api = {}
+function subscribe<T extends unknown[]>(
+  channel: string,
+  callback: (...args: T) => void
+): () => void {
+  const listener = (_event: IpcRendererEvent, ...args: T): void => callback(...args)
+  ipcRenderer.on(channel, listener)
+  return () => ipcRenderer.removeListener(channel, listener)
+}
+
+export const api = {
+  onFileOpened: (callback: (note: Note) => void) =>
+    subscribe<[Note]>(Channels.FileOpened, callback),
+  onSaveRequest: (callback: () => void) => subscribe<[]>(Channels.SaveRequest, callback),
+  saveFile: (path: string | null, content: string): Promise<{ path: string } | null> =>
+    ipcRenderer.invoke(Channels.SaveFile, { path, content })
+}
 
 // Use `contextBridge` APIs to expose Electron APIs to
 // renderer only if context isolation is enabled, otherwise
