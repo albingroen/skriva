@@ -1,19 +1,19 @@
-import { useCallback, useEffect, useState } from 'react'
-import Editor from './components/Editor'
-import { Note } from '@shared/types'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import Editor, { EditorHandle } from './components/Editor'
 
 function App(): React.JSX.Element {
-  const [note, setNote] = useState<Note>()
+  const [path, setPath] = useState<string | null>(null)
   const [isDirty, setIsDirty] = useState(false)
+  const editorRef = useRef<EditorHandle>(null)
 
   useEffect(() => {
-    const unsubOpened = window.api.onFileOpened((value) => {
-      setNote(value)
-      setIsDirty(false)
+    const unsubOpened = window.api.onFileOpened((note) => {
+      setPath(note.path)
+      editorRef.current?.load(note.content)
     })
     const unsubNew = window.api.onNewFile(() => {
-      setNote(undefined)
-      setIsDirty(false)
+      setPath(null)
+      editorRef.current?.load('')
     })
     return () => {
       unsubOpened()
@@ -21,14 +21,19 @@ function App(): React.JSX.Element {
     }
   }, [])
 
+  const handleDirtyChange = useCallback((dirty: boolean) => {
+    setIsDirty(dirty)
+    window.api.setDirty(dirty)
+  }, [])
+
   const handleSave = useCallback(
     async (content: string): Promise<boolean> => {
-      const result = await window.api.saveFile(note?.path ?? null, content)
+      const result = await window.api.saveFile(path, content)
       if (!result) return false
-      setNote({ path: result.path, content })
+      setPath(result.path)
       return true
     },
-    [note?.path]
+    [path]
   )
 
   return (
@@ -39,7 +44,7 @@ function App(): React.JSX.Element {
         <div className="absolute top-2.5 right-3 w-2 h-2 rounded-full bg-blue-500 z-20 pointer-events-none" />
       )}
 
-      <Editor onSave={handleSave} onDirtyChange={setIsDirty} key={note?.path} note={note} />
+      <Editor ref={editorRef} onSave={handleSave} onDirtyChange={handleDirtyChange} />
     </>
   )
 }

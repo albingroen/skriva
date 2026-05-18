@@ -18,7 +18,8 @@ export const api = {
   onSaveRequest: (callback: () => void) => subscribe<[]>(Channels.SaveRequest, callback),
   onNewFile: (callback: () => void) => subscribe<[]>(Channels.NewFile, callback),
   saveFile: (path: string | null, content: string): Promise<{ path: string } | null> =>
-    ipcRenderer.invoke(Channels.SaveFile, { path, content })
+    ipcRenderer.invoke(Channels.SaveFile, { path, content }),
+  setDirty: (dirty: boolean): void => ipcRenderer.send(Channels.SetDirty, dirty)
 }
 
 // Use `contextBridge` APIs to expose Electron APIs to

@@ -7,6 +7,7 @@ import { Channels } from '@shared/channels'
 
 const BG_LIGHT = '#FAFAF9'
 const BG_DARK = '#1D1D16'
+const SAVE_MENU_ID = 'save'
 
 function getBackground(): string {
   return nativeTheme.shouldUseDarkColors ? BG_DARK : BG_LIGHT
@@ -83,8 +84,10 @@ function createWindow(): void {
           }
         },
         {
-          label: 'Save…',
+          id: SAVE_MENU_ID,
+          label: 'Save',
           accelerator: 'cmd+S',
+          enabled: false,
           click: () => {
             mainWindow.webContents.send(Channels.SaveRequest)
           }
@@ -125,6 +128,11 @@ app.whenReady().then(() => {
   // see https://github.com/alex8088/electron-toolkit/tree/master/packages/utils
   app.on('browser-window-created', (_, window) => {
     optimizer.watchWindowShortcuts(window)
+  })
+
+  ipcMain.on(Channels.SetDirty, (_event, dirty: boolean) => {
+    const item = Menu.getApplicationMenu()?.getMenuItemById(SAVE_MENU_ID)
+    if (item) item.enabled = dirty
   })
 
   createWindow()

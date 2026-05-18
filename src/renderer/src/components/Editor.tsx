@@ -5,20 +5,32 @@ import { TaskItem, TaskList } from '@tiptap/extension-list'
 import Highlight from '@tiptap/extension-highlight'
 import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight'
 import { all, createLowlight } from 'lowlight'
-import { Note } from '@shared/types'
-import { useEffect, useRef } from 'react'
+import { Ref, useCallback, useEffect, useImperativeHandle, useRef } from 'react'
 
 const lowlight = createLowlight(all)
 
+export type EditorHandle = {
+  load: (content: string) => void
+}
+
 type EditorProps = {
-  note?: Note
+  ref?: Ref<EditorHandle>
   onSave: (content: string) => Promise<boolean>
   onDirtyChange: (dirty: boolean) => void
 }
 
-export default function Editor({ note, onSave, onDirtyChange }: EditorProps): React.JSX.Element {
+export default function Editor({ ref, onSave, onDirtyChange }: EditorProps): React.JSX.Element {
   const savedRef = useRef<string | null>(null)
   const dirtyRef = useRef(false)
+
+  const markClean = useCallback(
+    (content: string): void => {
+      savedRef.current = content
+      dirtyRef.current = false
+      onDirtyChange(false)
+    },
+    [onDirtyChange]
+  )
 
   const editor = useEditor({
     extensions: [
@@ -35,9 +47,8 @@ export default function Editor({ note, onSave, onDirtyChange }: EditorProps): Re
         lowlight
       })
     ],
-    content: note?.content ?? '',
+    content: '',
     contentType: 'markdown',
-    autofocus: 'end',
     onCreate: ({ editor }) => {
       savedRef.current = editor.getMarkdown()
     },
@@ -58,17 +69,28 @@ export default function Editor({ note, onSave, onDirtyChange }: EditorProps): Re
     }
   })
 
+  useImperativeHandle(
+    ref,
+    () => ({
+      load: (content) => {
+        if (!editor) return
+        savedRef.current = null
+        editor.chain().setContent(content, { contentType: 'markdown' }).focus('end').run()
+        markClean(editor.getMarkdown())
+      }
+    }),
+    [editor, markClean]
+  )
+
   useEffect(() => {
     if (!editor) return
     return window.api.onSaveRequest(async () => {
       const content = editor.getMarkdown()
       const ok = await onSave(content)
       if (!ok) return
-      savedRef.current = content
-      dirtyRef.current = false
-      onDirtyChange(false)
+      markClean(content)
     })
-  }, [editor, onSave, onDirtyChange])
+  }, [editor, onSave, markClean])
 
   return <EditorContent editor={editor} />
 }
