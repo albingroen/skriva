@@ -5,7 +5,7 @@ import { is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 import { buildAppMenu } from './menu'
 
-const BG_LIGHT = '#FAFAF9'
+const BG_LIGHT = '#F5F5F5'
 const BG_DARK = '#1D1D16'
 
 /**
