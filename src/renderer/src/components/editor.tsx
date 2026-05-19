@@ -84,7 +84,8 @@ export default function Editor({ ref, onSave, onDirtyChange }: EditorProps): Rea
         }
 
         savedDocRef.current = null
-        editor.chain().setContent(content, { contentType: 'markdown' }).focus('end').run()
+        editor.commands.setContent(content, { contentType: 'markdown' })
+        editor.commands.focus('end')
         markClean(editor.state.doc)
       }
     }),
@@ -96,18 +97,16 @@ export default function Editor({ ref, onSave, onDirtyChange }: EditorProps): Rea
       return
     }
 
-    console.log('listen')
-
     return window.api.onSaveRequest(async () => {
       const cleanDoc = editor.state.doc
       const content = editor.getMarkdown()
       const wasSaved = await onSave(content)
 
-      if (!wasSaved) {
-        return
+      if (wasSaved) {
+        markClean(cleanDoc)
       }
 
-      markClean(cleanDoc)
+      window.api.notifySaveCompleted(wasSaved)
     })
   }, [editor, onSave, markClean])
 

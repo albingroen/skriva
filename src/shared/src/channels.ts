@@ -3,5 +3,6 @@ export const Channels = {
   FileOpened: 'file-opened',
   SaveRequest: 'save-request',
   NewFile: 'new-file',
-  SetDirty: 'set-dirty'
+  SetDirty: 'set-dirty',
+  SaveCompleted: 'save-completed'
 } as const

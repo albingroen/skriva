@@ -1,12 +1,27 @@
-import { BrowserWindow, Menu, nativeTheme, shell } from 'electron'
+import { app, BrowserWindow, dialog, ipcMain, Menu, nativeTheme, shell } from 'electron'
 import { join } from 'path'
 import { is } from '@electron-toolkit/utils'
 
+import { Channels } from '@shared/channels'
+
 import icon from '../../resources/icon.png?asset'
+import { getIsDirty } from './ipc'
 import { buildAppMenu } from './menu'
 
 const BG_LIGHT = '#F5F5F5'
 const BG_DARK = '#1D1D16'
+
+// Electron aborts the in-flight `app.quit()` cycle as soon as a
+// `close` handler calls `preventDefault`, so the close handler has
+// to re-issue `app.quit()` itself after the user picks Save/Discard.
+let isQuitting = false
+
+app.on('before-quit', () => {
+  isQuitting = true
+})
+
+const SAVE_BUTTON = 0
+const CANCEL_BUTTON = 2
 
 /**
  * Resolves the window background color for the current OS theme.
@@ -45,6 +60,47 @@ export function createMainWindow(): BrowserWindow {
   }
 
   nativeTheme.on('updated', handleThemeUpdate)
+
+  let forceClose = false
+
+  mainWindow.on('close', async (event) => {
+    if (forceClose || !getIsDirty()) {
+      return
+    }
+
+    event.preventDefault()
+
+    const { response } = await dialog.showMessageBox(mainWindow, {
+      type: 'warning',
+      message: 'Save changes before closing?',
+      detail: "Your changes will be lost if you don't save them.",
+      buttons: ['Save', 'Discard', 'Cancel'],
+      defaultId: SAVE_BUTTON,
+      cancelId: CANCEL_BUTTON
+    })
+
+    if (response === CANCEL_BUTTON) {
+      isQuitting = false
+      return
+    }
+
+    if (response === SAVE_BUTTON) {
+      const saved = await requestSaveFromRenderer(mainWindow)
+
+      if (!saved) {
+        isQuitting = false
+        return
+      }
+    }
+
+    forceClose = true
+    mainWindow.destroy()
+
+    if (isQuitting) {
+      app.quit()
+    }
+  })
+
   mainWindow.on('closed', () => {
     nativeTheme.off('updated', handleThemeUpdate)
   })
@@ -67,4 +123,14 @@ export function createMainWindow(): BrowserWindow {
   Menu.setApplicationMenu(buildAppMenu(mainWindow))
 
   return mainWindow
+}
+
+function requestSaveFromRenderer(window: BrowserWindow): Promise<boolean> {
+  return new Promise((resolve) => {
+    ipcMain.once(Channels.SaveCompleted, (_event, success: boolean) => {
+      resolve(success)
+    })
+
+    window.webContents.send(Channels.SaveRequest)
+  })
 }

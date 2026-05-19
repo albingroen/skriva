@@ -48,6 +48,15 @@ export const api = {
   /** Notifies the main process so it can toggle the Save menu item. */
   setDirty: (isDirty: boolean): void => {
     ipcRenderer.send(Channels.SetDirty, isDirty)
+  },
+
+  /**
+   * Reports the outcome of a save triggered by `SaveRequest`. Used by
+   * the close-with-unsaved-changes flow in main to know whether to
+   * proceed with closing the window.
+   */
+  notifySaveCompleted: (success: boolean): void => {
+    ipcRenderer.send(Channels.SaveCompleted, success)
   }
 }
 

@@ -6,6 +6,17 @@ import type { Note, SaveFilePayload, SaveFileResult } from '@shared/types'
 
 import { SAVE_MENU_ID } from './menu'
 
+let isDirty = false
+
+/**
+ * Whether the renderer currently has unsaved changes. Mirrored from
+ * `SetDirty` so the main process can decide whether to prompt before
+ * closing the window.
+ */
+export function getIsDirty(): boolean {
+  return isDirty
+}
+
 /**
  * Wires up every IPC channel the renderer talks to.
  *
@@ -45,11 +56,13 @@ export function registerIpcHandlers(): void {
     }
   )
 
-  ipcMain.on(Channels.SetDirty, (_event, isDirty: boolean) => {
+  ipcMain.on(Channels.SetDirty, (_event, nextIsDirty: boolean) => {
+    isDirty = nextIsDirty
+
     const saveItem = Menu.getApplicationMenu()?.getMenuItemById(SAVE_MENU_ID)
 
     if (saveItem) {
-      saveItem.enabled = isDirty
+      saveItem.enabled = nextIsDirty
     }
   })
 }
