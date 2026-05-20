@@ -1,10 +1,11 @@
-import { BrowserWindow, dialog, ipcMain, Menu } from 'electron'
+import { BrowserWindow, dialog, ipcMain, Menu, MenuItemConstructorOptions } from 'electron'
 import fs from 'node:fs/promises'
 
 import { Channels } from '@shared/channels'
+import { FORMAT_COMMAND_NAMES, type FormatState, formatMenuItemId } from '@shared/format'
 import type { Note, SaveFilePayload, SaveFileResult } from '@shared/types'
 
-import { SAVE_MENU_ID } from './menu'
+import { buildFormatMenu, SAVE_MENU_ID } from './menu'
 
 let isDirty = false
 
@@ -64,6 +65,40 @@ export function registerIpcHandlers(): void {
     if (saveItem) {
       saveItem.enabled = nextIsDirty
     }
+  })
+
+  ipcMain.on(Channels.FormatStateChanged, (_event, state: FormatState) => {
+    const menu = Menu.getApplicationMenu()
+
+    if (!menu) {
+      return
+    }
+
+    for (const name of FORMAT_COMMAND_NAMES) {
+      const item = menu.getMenuItemById(formatMenuItemId(name))
+
+      if (item && item.checked !== state[name]) {
+        item.checked = state[name]
+      }
+    }
+  })
+
+  ipcMain.on(Channels.ShowContextMenu, (event, state: FormatState) => {
+    const senderWindow = BrowserWindow.fromWebContents(event.sender)
+
+    if (!senderWindow) {
+      return
+    }
+
+    const template: MenuItemConstructorOptions[] = [
+      { role: 'cut' },
+      { role: 'copy' },
+      { role: 'paste' },
+      { type: 'separator' },
+      ...buildFormatMenu(senderWindow, state)
+    ]
+
+    Menu.buildFromTemplate(template).popup({ window: senderWindow })
   })
 }
 

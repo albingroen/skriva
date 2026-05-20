@@ -2,6 +2,7 @@ import { contextBridge, ipcRenderer, IpcRendererEvent } from 'electron'
 import { electronAPI } from '@electron-toolkit/preload'
 
 import { Channels } from '@shared/channels'
+import type { FormatCommandName, FormatState } from '@shared/format'
 import type { Note, SaveFileResult } from '@shared/types'
 
 /**
@@ -57,6 +58,20 @@ export const api = {
    */
   notifySaveCompleted: (success: boolean): void => {
     ipcRenderer.send(Channels.SaveCompleted, success)
+  },
+
+  /** Fires when the user picks a Format item from the menu bar or context menu. */
+  onFormatCommand: (callback: (name: FormatCommandName) => void): (() => void) =>
+    subscribe<[FormatCommandName]>(Channels.FormatCommand, callback),
+
+  /** Pushes the current selection's active-mark/node state so main can update menu checkmarks. */
+  sendFormatState: (state: FormatState): void => {
+    ipcRenderer.send(Channels.FormatStateChanged, state)
+  },
+
+  /** Asks main to show the native right-click menu with the given format state baked in. */
+  showContextMenu: (state: FormatState): void => {
+    ipcRenderer.send(Channels.ShowContextMenu, state)
   }
 }
 

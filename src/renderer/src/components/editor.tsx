@@ -1,7 +1,8 @@
-import { useEditor, EditorContent } from '@tiptap/react'
+import { useEditor, EditorContent, type Editor as TipTapEditor } from '@tiptap/react'
 import type { Node as ProseMirrorNode } from '@tiptap/pm/model'
 import { Ref, useCallback, useEffect, useImperativeHandle, useRef } from 'react'
 
+import { computeFormatState, dispatchFormatCommand } from './editor-format'
 import { editorExtensions } from './editor-extensions'
 
 /**
@@ -33,6 +34,7 @@ type EditorProps = {
 export default function Editor({ ref, onSave, onDirtyChange }: EditorProps): React.JSX.Element {
   const savedDocRef = useRef<ProseMirrorNode | null>(null)
   const isDirtyRef = useRef(false)
+  const pendingFrameRef = useRef<number | null>(null)
 
   const markClean = useCallback(
     (cleanDoc: ProseMirrorNode): void => {
@@ -43,6 +45,19 @@ export default function Editor({ ref, onSave, onDirtyChange }: EditorProps): Rea
     [onDirtyChange]
   )
 
+  // Coalesces format-state pushes to one per animation frame so a
+  // burst of transactions doesn't spam IPC.
+  const scheduleFormatStateSync = (editor: TipTapEditor): void => {
+    if (pendingFrameRef.current !== null) {
+      return
+    }
+
+    pendingFrameRef.current = requestAnimationFrame(() => {
+      pendingFrameRef.current = null
+      window.api.sendFormatState(computeFormatState(editor))
+    })
+  }
+
   const editor = useEditor({
     extensions: editorExtensions,
     content: '',
@@ -50,6 +65,7 @@ export default function Editor({ ref, onSave, onDirtyChange }: EditorProps): Rea
     autofocus: 'end',
     onCreate: ({ editor }) => {
       savedDocRef.current = editor.state.doc
+      scheduleFormatStateSync(editor)
     },
     onUpdate: ({ editor }) => {
       if (savedDocRef.current === null) {
@@ -64,6 +80,9 @@ export default function Editor({ ref, onSave, onDirtyChange }: EditorProps): Rea
 
       isDirtyRef.current = isDirty
       onDirtyChange(isDirty)
+    },
+    onTransaction: ({ editor }) => {
+      scheduleFormatStateSync(editor)
     },
     editorProps: {
       scrollMargin: { bottom: 160, top: 80, left: 0, right: 0 },
@@ -109,6 +128,40 @@ export default function Editor({ ref, onSave, onDirtyChange }: EditorProps): Rea
       window.api.notifySaveCompleted(wasSaved)
     })
   }, [editor, onSave, markClean])
+
+  useEffect(() => {
+    if (!editor) {
+      return
+    }
+
+    return window.api.onFormatCommand((name) => {
+      dispatchFormatCommand(editor, name)
+    })
+  }, [editor])
+
+  useEffect(() => {
+    if (!editor) {
+      return
+    }
+
+    const dom = editor.view.dom
+    const handler = (event: Event): void => {
+      event.preventDefault()
+      window.api.showContextMenu(computeFormatState(editor))
+    }
+
+    dom.addEventListener('contextmenu', handler)
+    return () => dom.removeEventListener('contextmenu', handler)
+  }, [editor])
+
+  useEffect(() => {
+    return () => {
+      if (pendingFrameRef.current !== null) {
+        cancelAnimationFrame(pendingFrameRef.current)
+        pendingFrameRef.current = null
+      }
+    }
+  }, [])
 
   return <EditorContent editor={editor} />
 }

@@ -4,5 +4,8 @@ export const Channels = {
   SaveRequest: 'save-request',
   NewFile: 'new-file',
   SetDirty: 'set-dirty',
-  SaveCompleted: 'save-completed'
+  SaveCompleted: 'save-completed',
+  FormatCommand: 'format-command',
+  FormatStateChanged: 'format-state-changed',
+  ShowContextMenu: 'show-context-menu'
 } as const

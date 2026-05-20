@@ -82,22 +82,16 @@
   scrollbar-color: var(--color-muted) transparent;
 
   h1 {
-    @apply text-3xl;
+    @apply text-3xl text-balance leading-snug;
   }
 
   h1,
-  h2 {
-    @apply font-medium;
-  }
-
-  h3 {
-    @apply font-semibold;
-  }
-
+  h2,
+  h3,
   h4,
   h5,
   h6 {
-    @apply font-bold;
+    @apply font-medium;
   }
 
   hr,
