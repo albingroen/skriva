@@ -22,6 +22,14 @@ export default defineConfig({
     plugins: [react(), tailwindcss()],
     server: {
       port: 5174
+    },
+    build: {
+      rollupOptions: {
+        input: {
+          index: resolve('src/renderer/index.html'),
+          preferences: resolve('src/renderer/preferences.html')
+        }
+      }
     }
   }
 })

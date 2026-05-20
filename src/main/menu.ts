@@ -1,4 +1,4 @@
-import { BrowserWindow, Menu, MenuItemConstructorOptions } from 'electron'
+import { app, BrowserWindow, Menu, MenuItemConstructorOptions } from 'electron'
 import { Channels } from '@shared/channels'
 import {
   FORMAT_MENU,
@@ -60,10 +60,39 @@ export function buildFormatMenu(
  * Builds the application menu bound to the given window. File-system
  * work lives in `./ipc`; this module only describes the menu shape
  * and forwards user actions through Channels.
+ *
+ * `onOpenPreferences` is injected by `window.ts` to avoid a circular
+ * import — the menu needs to open the preferences window, and
+ * `window.ts` already imports `buildAppMenu` from here.
  */
-export function buildAppMenu(window: BrowserWindow): Menu {
+export function buildAppMenu(window: BrowserWindow, onOpenPreferences: () => void): Menu {
+  const isMac = process.platform === 'darwin'
+
+  const appMenu: MenuItemConstructorOptions = isMac
+    ? {
+        label: app.name,
+        submenu: [
+          { role: 'about' },
+          { type: 'separator' },
+          {
+            label: 'Preferences…',
+            accelerator: 'CmdOrCtrl+,',
+            click: onOpenPreferences
+          },
+          { type: 'separator' },
+          { role: 'services' },
+          { type: 'separator' },
+          { role: 'hide' },
+          { role: 'hideOthers' },
+          { role: 'unhide' },
+          { type: 'separator' },
+          { role: 'quit' }
+        ]
+      }
+    : { role: 'appMenu' }
+
   const template: MenuItemConstructorOptions[] = [
-    { role: 'appMenu' },
+    appMenu,
     {
       label: 'File',
       submenu: [

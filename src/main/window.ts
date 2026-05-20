@@ -37,6 +37,21 @@ function getBackgroundColor(): string {
 }
 
 /**
+ * Keeps `window`'s background in sync with the OS theme and tears
+ * the listener down when the window closes.
+ */
+function syncBackgroundToTheme(window: BrowserWindow): void {
+  const handleThemeUpdate = (): void => {
+    if (!window.isDestroyed()) {
+      window.setBackgroundColor(getBackgroundColor())
+    }
+  }
+
+  nativeTheme.on('updated', handleThemeUpdate)
+  window.on('closed', () => nativeTheme.off('updated', handleThemeUpdate))
+}
+
+/**
  * Creates the main application window, installs theme + lifecycle
  * listeners, loads the renderer, and attaches the application menu.
  */
@@ -44,6 +59,8 @@ export function createMainWindow(): BrowserWindow {
   const mainWindow = new BrowserWindow({
     width: 900,
     height: 670,
+    minWidth: 450,
+    minHeight: 670,
     show: false,
     backgroundColor: getBackgroundColor(),
     autoHideMenuBar: true,
@@ -55,11 +72,7 @@ export function createMainWindow(): BrowserWindow {
     titleBarStyle: 'hiddenInset'
   })
 
-  const handleThemeUpdate = (): void => {
-    mainWindow.setBackgroundColor(getBackgroundColor())
-  }
-
-  nativeTheme.on('updated', handleThemeUpdate)
+  syncBackgroundToTheme(mainWindow)
 
   let forceClose = false
 
@@ -101,8 +114,12 @@ export function createMainWindow(): BrowserWindow {
     }
   })
 
+  // Electron destroys modal children when their parent goes away
+  // but does not always emit `closed` on them, leaving our cached
+  // reference pointing at a destroyed window. Closing it here forces
+  // the cleanup path to run.
   mainWindow.on('closed', () => {
-    nativeTheme.off('updated', handleThemeUpdate)
+    preferencesWindow?.close()
   })
 
   mainWindow.on('ready-to-show', () => {
@@ -120,9 +137,58 @@ export function createMainWindow(): BrowserWindow {
     mainWindow.loadFile(join(__dirname, '../renderer/index.html'))
   }
 
-  Menu.setApplicationMenu(buildAppMenu(mainWindow))
+  Menu.setApplicationMenu(buildAppMenu(mainWindow, () => openPreferencesWindow(mainWindow)))
 
   return mainWindow
+}
+
+let preferencesWindow: BrowserWindow | null = null
+
+/**
+ * Opens the Preferences window, or focuses it if already open. Loads
+ * the secondary `preferences.html` renderer entry configured in
+ * `electron.vite.config.ts`. Opened as an app-modal child of `parent`
+ * so the editor window can't be interacted with while it's up.
+ */
+export function openPreferencesWindow(parent: BrowserWindow): void {
+  if (preferencesWindow) {
+    preferencesWindow.focus()
+    return
+  }
+
+  preferencesWindow = new BrowserWindow({
+    width: 520,
+    height: 380,
+    parent,
+    modal: true,
+    resizable: false,
+    minimizable: false,
+    maximizable: false,
+    fullscreenable: false,
+    show: false,
+    backgroundColor: getBackgroundColor(),
+    title: 'Preferences',
+    webPreferences: {
+      preload: join(__dirname, '../preload/index.js'),
+      sandbox: false
+    }
+  })
+
+  syncBackgroundToTheme(preferencesWindow)
+
+  preferencesWindow.on('ready-to-show', () => {
+    preferencesWindow?.show()
+  })
+
+  preferencesWindow.on('closed', () => {
+    preferencesWindow = null
+  })
+
+  if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
+    preferencesWindow.loadURL(`${process.env['ELECTRON_RENDERER_URL']}/preferences.html`)
+  } else {
+    preferencesWindow.loadFile(join(__dirname, '../renderer/preferences.html'))
+  }
 }
 
 function requestSaveFromRenderer(window: BrowserWindow): Promise<boolean> {
