@@ -89,7 +89,7 @@ export default function Editor({ ref, onSave, onDirtyChange }: EditorProps): Rea
       scrollThreshold: { bottom: 160, top: 80, left: 0, right: 0 },
       attributes: {
         class:
-          'px-[10svw] xl:px-[25svw] py-[10svh] prose dark:prose-invert w-svw h-svh text-foreground caret-foreground overflow-y-auto max-w-none outline-none'
+          'px-[6svw] xl:px-[25svw] py-24 prose dark:prose-invert w-svw h-svh text-foreground caret-foreground overflow-y-auto max-w-none outline-none'
       }
     }
   })

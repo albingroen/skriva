@@ -35,9 +35,6 @@ export const api = {
   onSaveRequest: (callback: () => void): (() => void) =>
     subscribe<[]>(Channels.SaveRequest, callback),
 
-  /** Fires when the user invokes New (⌘N) from the menu. */
-  onNewFile: (callback: () => void): (() => void) => subscribe<[]>(Channels.NewFile, callback),
-
   /**
    * Writes content to `path`. If `path` is null the main process
    * shows a Save dialog and returns the chosen path (or null if the

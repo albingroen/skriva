@@ -7,17 +7,27 @@ import {
   formatMenuItemId
 } from '@shared/format'
 
-import { openFileDialog } from './ipc'
-
 /**
  * Stable id for the Save menu item. The IPC layer flips its
- * `enabled` flag based on whether the renderer has unsaved changes.
+ * `enabled` flag based on whether the focused window has unsaved
+ * changes.
  */
 export const SAVE_MENU_ID = 'save'
 
+/**
+ * Handlers wired into the application menu. Provided by `index.ts`
+ * so this module can stay free of `window.ts` / `ipc.ts` dependencies
+ * and the menu can resolve the focused window at click time.
+ */
+export type AppMenuHandlers = {
+  onNew: () => void
+  onOpen: () => void | Promise<void>
+  onOpenPreferences: () => void
+}
+
 function buildFormatEntry(
   entry: FormatMenuEntry,
-  window: BrowserWindow,
+  resolveTarget: () => BrowserWindow | null,
   state?: FormatState
 ): MenuItemConstructorOptions {
   if (entry.kind === 'separator') {
@@ -27,7 +37,7 @@ function buildFormatEntry(
   if (entry.kind === 'submenu') {
     return {
       label: entry.label,
-      submenu: entry.entries.map((child) => buildFormatEntry(child, window, state))
+      submenu: entry.entries.map((child) => buildFormatEntry(child, resolveTarget, state))
     }
   }
 
@@ -38,34 +48,39 @@ function buildFormatEntry(
     type: 'checkbox',
     checked: state?.[entry.name] ?? false,
     click: () => {
-      window.webContents.send(Channels.FormatCommand, entry.name)
+      const target = resolveTarget()
+
+      if (target) {
+        target.webContents.send(Channels.FormatCommand, entry.name)
+      }
     }
   }
 }
 
 /**
  * Builds the Format submenu items from the shared declarative list.
- * Reused for both the menu bar entry (where `state` is omitted and
- * items are later updated via `getMenuItemById`) and the right-click
- * popup (where current `state` is baked into `checked` at build time).
+ * `resolveTarget` is invoked at click time to find the window the
+ * command should be sent to — the menu bar passes
+ * `BrowserWindow.getFocusedWindow`, the context-menu popup passes the
+ * sender window so clicks always route back to the originating
+ * window even if focus shifts mid-popup.
  */
 export function buildFormatMenu(
-  window: BrowserWindow,
+  resolveTarget: () => BrowserWindow | null,
   state?: FormatState
 ): MenuItemConstructorOptions[] {
-  return FORMAT_MENU.map((entry) => buildFormatEntry(entry, window, state))
+  return FORMAT_MENU.map((entry) => buildFormatEntry(entry, resolveTarget, state))
 }
 
 /**
- * Builds the application menu bound to the given window. File-system
- * work lives in `./ipc`; this module only describes the menu shape
- * and forwards user actions through Channels.
- *
- * `onOpenPreferences` is injected by `window.ts` to avoid a circular
- * import — the menu needs to open the preferences window, and
- * `window.ts` already imports `buildAppMenu` from here.
+ * Builds the global application menu. The menu is window-agnostic:
+ * click handlers either invoke the injected handlers from
+ * `index.ts` (New / Open / Preferences) or resolve the focused
+ * window at click time (Save / Format). Per-window state (Save
+ * enabled, Format checkmarks) is pushed into the menu via
+ * `syncMenuToFocusedWindow` on focus changes.
  */
-export function buildAppMenu(window: BrowserWindow, onOpenPreferences: () => void): Menu {
+export function buildAppMenu(handlers: AppMenuHandlers): Menu {
   const isMac = process.platform === 'darwin'
 
   const appMenu: MenuItemConstructorOptions = isMac
@@ -77,7 +92,7 @@ export function buildAppMenu(window: BrowserWindow, onOpenPreferences: () => voi
           {
             label: 'Preferences…',
             accelerator: 'CmdOrCtrl+,',
-            click: onOpenPreferences
+            click: handlers.onOpenPreferences
           },
           { type: 'separator' },
           { role: 'services' },
@@ -101,7 +116,7 @@ export function buildAppMenu(window: BrowserWindow, onOpenPreferences: () => voi
           label: 'New',
           accelerator: 'cmd+N',
           click: () => {
-            window.webContents.send(Channels.NewFile)
+            void handlers.onNew()
           }
         },
         {
@@ -110,20 +125,24 @@ export function buildAppMenu(window: BrowserWindow, onOpenPreferences: () => voi
           accelerator: 'cmd+S',
           enabled: false,
           click: () => {
-            window.webContents.send(Channels.SaveRequest)
+            const focused = BrowserWindow.getFocusedWindow()
+
+            if (focused) {
+              focused.webContents.send(Channels.SaveRequest)
+            }
           }
         },
         {
           label: 'Open…',
           accelerator: 'cmd+O',
-          click: async () => {
-            await openFileDialog(window)
+          click: () => {
+            void handlers.onOpen()
           }
         }
       ]
     },
     { role: 'editMenu' },
-    { label: 'Format', submenu: buildFormatMenu(window) },
+    { label: 'Format', submenu: buildFormatMenu(() => BrowserWindow.getFocusedWindow()) },
     { role: 'viewMenu' },
     { role: 'windowMenu' },
     { role: 'help' }

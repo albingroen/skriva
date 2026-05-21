@@ -1,12 +1,12 @@
-import { app, BrowserWindow, dialog, ipcMain, Menu, nativeTheme, shell } from 'electron'
+import { app, BrowserWindow, dialog, IpcMainEvent, ipcMain, nativeTheme, shell } from 'electron'
 import { join } from 'path'
 import { is } from '@electron-toolkit/utils'
 
 import { Channels } from '@shared/channels'
 
 import icon from '../../resources/icon.png?asset'
-import { getIsDirty } from './ipc'
-import { buildAppMenu } from './menu'
+import { getIsDirty, loadFileIntoWindow } from './ipc'
+import { registerEditorWindow } from './window-registry'
 
 const BG_LIGHT = '#F5F5F5'
 const BG_DARK = '#1D1D16'
@@ -51,11 +51,19 @@ function syncBackgroundToTheme(window: BrowserWindow): void {
   window.on('closed', () => nativeTheme.off('updated', handleThemeUpdate))
 }
 
+export type CreateMainWindowOptions = {
+  /** Optional file to load into the new window after the renderer is ready. */
+  initialPath?: string
+}
+
 /**
- * Creates the main application window, installs theme + lifecycle
- * listeners, loads the renderer, and attaches the application menu.
+ * Creates an editor window, installs theme + lifecycle listeners,
+ * loads the renderer, and registers it in the window registry. When
+ * `initialPath` is provided, reads that file and delivers it to the
+ * renderer via `Channels.FileOpened` once the page has finished
+ * loading.
  */
-export function createMainWindow(): BrowserWindow {
+export function createMainWindow(options: CreateMainWindowOptions = {}): BrowserWindow {
   const mainWindow = new BrowserWindow({
     width: 900,
     height: 670,
@@ -72,12 +80,13 @@ export function createMainWindow(): BrowserWindow {
     titleBarStyle: 'hiddenInset'
   })
 
+  registerEditorWindow(mainWindow, options.initialPath ?? null)
   syncBackgroundToTheme(mainWindow)
 
   let forceClose = false
 
   mainWindow.on('close', async (event) => {
-    if (forceClose || !getIsDirty()) {
+    if (forceClose || !getIsDirty(mainWindow)) {
       return
     }
 
@@ -114,14 +123,6 @@ export function createMainWindow(): BrowserWindow {
     }
   })
 
-  // Electron destroys modal children when their parent goes away
-  // but does not always emit `closed` on them, leaving our cached
-  // reference pointing at a destroyed window. Closing it here forces
-  // the cleanup path to run.
-  mainWindow.on('closed', () => {
-    preferencesWindow?.close()
-  })
-
   mainWindow.on('ready-to-show', () => {
     mainWindow.show()
   })
@@ -131,13 +132,26 @@ export function createMainWindow(): BrowserWindow {
     return { action: 'deny' }
   })
 
+  // The renderer HTML carries a static `<title>Skriva</title>` which
+  // Electron would otherwise sync onto the window each load, clobbering
+  // the per-file title (basename / "Untitled") we set in the registry.
+  mainWindow.webContents.on('page-title-updated', (event) => {
+    event.preventDefault()
+  })
+
   if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
     mainWindow.loadURL(process.env['ELECTRON_RENDERER_URL'])
   } else {
     mainWindow.loadFile(join(__dirname, '../renderer/index.html'))
   }
 
-  Menu.setApplicationMenu(buildAppMenu(mainWindow, () => openPreferencesWindow(mainWindow)))
+  if (options.initialPath) {
+    const initialPath = options.initialPath
+
+    mainWindow.webContents.once('did-finish-load', () => {
+      void loadFileIntoWindow(mainWindow, initialPath)
+    })
+  }
 
   return mainWindow
 }
@@ -147,10 +161,12 @@ let preferencesWindow: BrowserWindow | null = null
 /**
  * Opens the Preferences window, or focuses it if already open. Loads
  * the secondary `preferences.html` renderer entry configured in
- * `electron.vite.config.ts`. Opened as an app-modal child of `parent`
- * so the editor window can't be interacted with while it's up.
+ * `electron.vite.config.ts`. Non-modal — multiple editor windows can
+ * remain interactive underneath it. `parent` is honored for initial
+ * positioning on macOS but the preferences window outlives any
+ * single editor.
  */
-export function openPreferencesWindow(parent: BrowserWindow): void {
+export function openPreferencesWindow(parent?: BrowserWindow): void {
   if (preferencesWindow) {
     preferencesWindow.focus()
     return
@@ -160,13 +176,13 @@ export function openPreferencesWindow(parent: BrowserWindow): void {
     width: 520,
     height: 380,
     parent,
-    modal: true,
     resizable: false,
     minimizable: false,
     maximizable: false,
     fullscreenable: false,
     show: false,
     backgroundColor: getBackgroundColor(),
+    titleBarStyle: 'hiddenInset',
     title: 'Preferences',
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
@@ -193,10 +209,16 @@ export function openPreferencesWindow(parent: BrowserWindow): void {
 
 function requestSaveFromRenderer(window: BrowserWindow): Promise<boolean> {
   return new Promise((resolve) => {
-    ipcMain.once(Channels.SaveCompleted, (_event, success: boolean) => {
-      resolve(success)
-    })
+    const handler = (event: IpcMainEvent, success: boolean): void => {
+      if (event.sender.id !== window.webContents.id) {
+        return
+      }
 
+      ipcMain.removeListener(Channels.SaveCompleted, handler)
+      resolve(success)
+    }
+
+    ipcMain.on(Channels.SaveCompleted, handler)
     window.webContents.send(Channels.SaveRequest)
   })
 }

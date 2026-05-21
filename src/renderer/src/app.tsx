@@ -19,14 +19,8 @@ function App(): React.JSX.Element {
       editorRef.current?.load(note.content)
     })
 
-    const unsubscribeFromNewFile = window.api.onNewFile(() => {
-      setCurrentPath(null)
-      editorRef.current?.load('')
-    })
-
     return () => {
       unsubscribeFromFileOpened()
-      unsubscribeFromNewFile()
     }
   }, [])
 

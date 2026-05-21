@@ -6,29 +6,107 @@ import { FORMAT_COMMAND_NAMES, type FormatState, formatMenuItemId } from '@share
 import type { Note, SaveFilePayload, SaveFileResult } from '@shared/types'
 
 import { buildFormatMenu, SAVE_MENU_ID } from './menu'
+import {
+  getEntryById,
+  getEntryByWindow,
+  getFocusedEditor,
+  setDirty,
+  setFormatState,
+  setPath
+} from './window-registry'
 
-let isDirty = false
+async function readNoteFromDisk(filePath: string): Promise<Note> {
+  const content = await fs.readFile(filePath, { encoding: 'utf-8' })
+  return { path: filePath, content }
+}
 
 /**
- * Whether the renderer currently has unsaved changes. Mirrored from
- * `SetDirty` so the main process can decide whether to prompt before
- * closing the window.
+ * Reads `filePath`, records it on the target window's registry
+ * entry, and delivers it to the renderer via `Channels.FileOpened`.
+ * On failure, shows an error dialog parented to the target. Shared
+ * between the Open… menu, the macOS `open-file` event, and the
+ * initial-path branch of `createMainWindow`.
  */
-export function getIsDirty(): boolean {
-  return isDirty
+export async function loadFileIntoWindow(window: BrowserWindow, filePath: string): Promise<void> {
+  try {
+    const note = await readNoteFromDisk(filePath)
+
+    if (window.isDestroyed()) {
+      return
+    }
+
+    setPath(window.webContents.id, filePath)
+    window.webContents.send(Channels.FileOpened, note)
+  } catch (error) {
+    if (window.isDestroyed()) {
+      return
+    }
+
+    const detail = error instanceof Error ? error.message : String(error)
+    await dialog.showMessageBox(window, {
+      type: 'error',
+      message: 'Could not open file',
+      detail
+    })
+  }
+}
+
+/**
+ * Whether the given window currently has unsaved changes. Mirrored
+ * from `SetDirty` into the window registry; main reads it when the
+ * window is asked to close.
+ */
+export function getIsDirty(window: BrowserWindow): boolean {
+  return getEntryByWindow(window)?.isDirty ?? false
+}
+
+/**
+ * Pushes per-window state (Save enabled, Format checkmarks) into the
+ * global application menu so it reflects the currently focused
+ * editor. Called from `browser-window-focus`/`-blur` listeners and
+ * whenever the focused window itself reports new state. Passing
+ * `null` (no editor focused) disables Save and clears checkmarks.
+ */
+export function syncMenuToFocusedWindow(window: BrowserWindow | null): void {
+  const menu = Menu.getApplicationMenu()
+
+  if (!menu) {
+    return
+  }
+
+  const entry = window ? getEntryById(window.webContents.id) : undefined
+
+  const saveItem = menu.getMenuItemById(SAVE_MENU_ID)
+
+  if (saveItem) {
+    saveItem.enabled = entry?.isDirty ?? false
+  }
+
+  const state = entry?.formatState
+
+  for (const name of FORMAT_COMMAND_NAMES) {
+    const item = menu.getMenuItemById(formatMenuItemId(name))
+
+    if (item) {
+      item.checked = state?.[name] ?? false
+    }
+  }
 }
 
 /**
  * Wires up every IPC channel the renderer talks to.
  *
  * - `SaveFile` writes the editor buffer to disk, prompting for a
- *   destination when no path is set yet.
- * - `SetDirty` toggles the Save menu item so it reflects whether
- *   the renderer has unsaved changes.
+ *   destination when no path is set yet, and records the resolved
+ *   path on the sender window's registry entry.
+ * - `SetDirty` updates the sender window's dirty flag; the global
+ *   Save menu item is toggled only when the sender is also the
+ *   focused window (focus/blur listeners sync on switch).
+ * - `FormatStateChanged` mirrors the sender's selection state into
+ *   the registry and the menu (when sender is focused).
  *
- * Handlers are registered once for the app lifetime. The Save
- * dialog is parented to the window that issued the request, found
- * via `BrowserWindow.fromWebContents`.
+ * Handlers are registered once for the app lifetime. Per-window
+ * routing is done via `event.sender.id` lookups in the registry.
  */
 export function registerIpcHandlers(): void {
   ipcMain.handle(
@@ -53,12 +131,19 @@ export function registerIpcHandlers(): void {
       }
 
       await fs.writeFile(targetPath, payload.content, { encoding: 'utf-8' })
+      setPath(event.sender.id, targetPath)
       return { path: targetPath }
     }
   )
 
-  ipcMain.on(Channels.SetDirty, (_event, nextIsDirty: boolean) => {
-    isDirty = nextIsDirty
+  ipcMain.on(Channels.SetDirty, (event, nextIsDirty: boolean) => {
+    setDirty(event.sender.id, nextIsDirty)
+
+    const focused = getFocusedEditor()
+
+    if (!focused || focused.window.webContents.id !== event.sender.id) {
+      return
+    }
 
     const saveItem = Menu.getApplicationMenu()?.getMenuItemById(SAVE_MENU_ID)
 
@@ -67,7 +152,15 @@ export function registerIpcHandlers(): void {
     }
   })
 
-  ipcMain.on(Channels.FormatStateChanged, (_event, state: FormatState) => {
+  ipcMain.on(Channels.FormatStateChanged, (event, state: FormatState) => {
+    setFormatState(event.sender.id, state)
+
+    const focused = getFocusedEditor()
+
+    if (!focused || focused.window.webContents.id !== event.sender.id) {
+      return
+    }
+
     const menu = Menu.getApplicationMenu()
 
     if (!menu) {
@@ -95,28 +188,9 @@ export function registerIpcHandlers(): void {
       { role: 'copy' },
       { role: 'paste' },
       { type: 'separator' },
-      ...buildFormatMenu(senderWindow, state)
+      ...buildFormatMenu(() => senderWindow, state)
     ]
 
     Menu.buildFromTemplate(template).popup({ window: senderWindow })
   })
-}
-
-/**
- * Shows the system Open dialog, reads the chosen file, and sends
- * its contents to the renderer via `Channels.FileOpened`. Called
- * from the application menu's "Open…" item.
- */
-export async function openFileDialog(window: BrowserWindow): Promise<void> {
-  const { canceled, filePaths } = await dialog.showOpenDialog(window)
-
-  if (canceled) {
-    return
-  }
-
-  const filePath = filePaths[0]
-  const content = await fs.readFile(filePath, { encoding: 'utf-8' })
-  const note: Note = { path: filePath, content }
-
-  window.webContents.send(Channels.FileOpened, note)
 }

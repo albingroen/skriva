@@ -25,6 +25,17 @@ mac:
     - NSMicrophoneUsageDescription: Application requests access to the device's microphone.
     - NSDocumentsFolderUsageDescription: Application requests access to the user's Documents folder.
     - NSDownloadsFolderUsageDescription: Application requests access to the user's Downloads folder.
+  fileAssociations:
+    - ext: md
+      name: Markdown
+      description: Markdown document
+      role: Editor
+      rank: Default
+    - ext: markdown
+      name: Markdown
+      description: Markdown document
+      role: Editor
+      rank: Alternate
   notarize: false
 dmg:
   artifactName: ${name}-${version}.${ext}
