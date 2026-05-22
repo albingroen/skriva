@@ -1,6 +1,6 @@
-# skriva
+# Skriva
 
-An Electron application with React and TypeScript
+A markdown note editor for macOS, built with Electron, React, and TipTap.
 
 ## Recommended IDE Setup
 
@@ -23,12 +23,7 @@ $ npm run dev
 ### Build
 
 ```bash
-# For windows
-$ npm run build:win
-
-# For macOS
 $ npm run build:mac
-
-# For Linux
-$ npm run build:linux
 ```
+
+The signed and notarized `.dmg` will be written to `dist/`. Signing and notarization require an Apple Developer ID certificate in your keychain and the `APPLE_ID`, `APPLE_APP_SPECIFIC_PASSWORD`, and `APPLE_TEAM_ID` environment variables to be set.
