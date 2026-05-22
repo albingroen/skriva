@@ -4,6 +4,7 @@ import { electronApp, optimizer } from '@electron-toolkit/utils'
 import { createMainWindow, openPreferencesWindow } from './window'
 import { loadFileIntoWindow, registerIpcHandlers, syncMenuToFocusedWindow } from './ipc'
 import { buildAppMenu } from './menu'
+import { initAutoUpdater } from './updater'
 import { getEntryByPath, getFocusedEditor, isBlankAndClean } from './window-registry'
 
 /**
@@ -120,6 +121,8 @@ app.whenReady().then(() => {
       createMainWindow()
     }
   })
+
+  initAutoUpdater()
 })
 
 app.on('window-all-closed', () => {
