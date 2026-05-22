@@ -4,6 +4,7 @@ import { TaskItem, TaskList } from '@tiptap/extension-list'
 import Highlight from '@tiptap/extension-highlight'
 import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight'
 import { all, createLowlight } from 'lowlight'
+import { TableKit } from '@tiptap/extension-table'
 
 const lowlight = createLowlight(all)
 
@@ -23,5 +24,6 @@ export const editorExtensions = [
     enableTabIndentation: true,
     tabSize: 2,
     lowlight
-  })
+  }),
+  TableKit
 ]

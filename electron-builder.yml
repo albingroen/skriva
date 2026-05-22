@@ -36,7 +36,7 @@ mac:
       description: Markdown document
       role: Editor
       rank: Alternate
-  notarize: false
+  notarize: true
 dmg:
   artifactName: ${name}-${version}.${ext}
 linux:
