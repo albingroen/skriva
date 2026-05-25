@@ -117,7 +117,7 @@ export function registerIpcHandlers(): void {
       if (!targetPath) {
         const senderWindow = BrowserWindow.fromWebContents(event.sender)
         const dialogOptions = {
-          filters: [{ name: 'Markdown', extensions: ['md'] }]
+          filters: [{ name: 'Markdown', extensions: ['md', 'mdx'] }]
         }
         const { canceled, filePath } = senderWindow
           ? await dialog.showSaveDialog(senderWindow, dialogOptions)

@@ -51,9 +51,13 @@ function handleNewFromMenu(): void {
 async function handleOpenFromMenu(): Promise<void> {
   const focused = getFocusedEditor()
 
+  const dialogOptions = {
+    filters: [{ name: 'Markdown', extensions: ['md', 'mdx'] }]
+  }
+
   const { canceled, filePaths } = focused
-    ? await dialog.showOpenDialog(focused.window)
-    : await dialog.showOpenDialog({})
+    ? await dialog.showOpenDialog(focused.window, dialogOptions)
+    : await dialog.showOpenDialog(dialogOptions)
 
   if (canceled || filePaths.length === 0) {
     return
@@ -93,7 +97,7 @@ app.whenReady().then(() => {
     buildAppMenu({
       onNew: handleNewFromMenu,
       onOpen: handleOpenFromMenu,
-      onOpenPreferences: () => openPreferencesWindow(BrowserWindow.getFocusedWindow() ?? undefined)
+      onOpenPreferences: openPreferencesWindow
     })
   )
 

@@ -166,7 +166,7 @@ let preferencesWindow: BrowserWindow | null = null
  * positioning on macOS but the preferences window outlives any
  * single editor.
  */
-export function openPreferencesWindow(parent?: BrowserWindow): void {
+export function openPreferencesWindow(): void {
   if (preferencesWindow) {
     preferencesWindow.focus()
     return
@@ -175,7 +175,6 @@ export function openPreferencesWindow(parent?: BrowserWindow): void {
   preferencesWindow = new BrowserWindow({
     width: 520,
     height: 380,
-    parent,
     resizable: false,
     minimizable: false,
     maximizable: false,
