@@ -36,4 +36,4 @@ npmRebuild: false
 publish:
   provider: github
   owner: albingroen
-  repo: skriva-releases
+  repo: skriva
