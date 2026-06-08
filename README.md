@@ -1,3 +1,5 @@
+<img width="4096" height="2304" alt="HI7SqdvboAMhOW4" src="https://github.com/user-attachments/assets/24b7f1e6-5140-472c-8788-2e312cf42b2b" />
+
 # Skriva
 
 A markdown note editor for macOS, built with Electron, React, and TipTap.
